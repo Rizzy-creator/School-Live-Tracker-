@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack - Teacher & Class Live Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-900">EduTrack <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ml-1 font-semibold">Live Staff & Classes</span></h1>
+                    <p class="text-xs text-slate-500">St. Jude Academy Admin Portal</p>
+                </div>
+            </div>
+
+            <!-- Live Clock Simulation Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <div class="px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-200 flex items-center space-x-2">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span id="currentPeriodBadge" class="font-bold text-sm text-slate-700">Period 3</span>
+                    <span id="currentTimeDisplay" class="text-xs text-slate-500 font-mono pl-1 border-l border-slate-200">10:10 AM - 10:55 AM</span>
+                </div>
+                <button onclick="advanceTime()" title="Advance Time to Next Period" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-medium rounded-lg transition shadow-sm flex items-center space-x-1">
+                    <i class="fa-solid fa-forward-step text-xs"></i>
+                    <span class="hidden sm:inline">Next Period</span>
+                </button>
+                <button onclick="resetSimulation()" title="Reset to Start of Day" class="px-2 py-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-lg text-xs transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center space-x-2">
+                <button onclick="openAddClassModal()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-school"></i>
+                    <span class="hidden sm:inline">Add Class</span>
+                </button>
+                <button onclick="openAddTeacherModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span class="hidden sm:inline">Add Teacher</span>
+                </button>
+                <button onclick="openPeriodConfigModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clock"></i>
+                    <span class="hidden md:inline">Edit Timings</span>
+                </button>
+                <button onclick="openSubstitutionModal()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span class="hidden lg:inline">Substitute</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Quick Stats Cards Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Teachers</p>
+                    <h3 id="statTotal" class="text-xl font-bold text-slate-800 mt-0.5">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-indigo-500 uppercase tracking-wider">Total Classes</p>
+                    <h3 id="statClassesTotal" class="text-xl font-bold text-indigo-600 mt-0.5">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-chalkboard"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-rose-500 uppercase tracking-wider">In Live Class</p>
+                    <h3 id="statInClass" class="text-xl font-bold text-rose-600 mt-0.5">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold text-amber-500 uppercase tracking-wider">Free / On Break</p>
+                    <h3 id="statFree" class="text-xl font-bold text-amber-600 mt-0.5">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-mug-hot"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between col-span-2 md:col-span-1">
+                <div>
+                    <p class="text-[11px] font-semibold text-blue-500 uppercase tracking-wider">Substitutions</p>
+                    <h3 id="statSub" class="text-xl font-bold text-blue-600 mt-0.5">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-handshake-angle"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Navigation Tabs -->
+        <div class="flex border-b border-slate-200 space-x-6 text-sm font-semibold overflow-x-auto">
+            <button onclick="switchTab('directory')" id="tab-directory" class="pb-3 border-b-2 border-blue-600 text-blue-600 flex items-center space-x-2 whitespace-nowrap transition">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Teacher Directory & Live Status</span>
+            </button>
+            <button onclick="switchTab('classes')" id="tab-classes" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition">
+                <i class="fa-solid fa-chalkboard"></i>
+                <span>Class Live Directory & Schedule</span>
+            </button>
+            <button onclick="switchTab('campus')" id="tab-campus" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span>Campus & Rooms</span>
+            </button>
+            <button onclick="switchTab('timeline')" id="tab-timeline" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Full Schedule Matrix</span>
+            </button>
+            <button onclick="switchTab('editor')" id="tab-editor" class="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Teacher Schedule Manager</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: Teacher Directory & Live Status -->
+        <section id="view-directory" class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 justify-between items-center">
+                <div class="relative w-full md:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Search teacher or room..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <select id="filterStatus" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <option value="ALL">All Statuses</option>
+                        <option value="CLASS">🔴 In Live Class</option>
+                        <option value="FREE">🟡 On Break / Free</option>
+                        <option value="SUB">🔵 Substitution Duty</option>
+                        <option value="ABSENT">⚪ Absent / Out</option>
+                    </select>
+
+                    <select id="filterDept" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                        <option value="ALL">All Subjects</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Science">Science</option>
+                        <option value="English">English</option>
+                        <option value="History">History</option>
+                        <option value="Art">Art</option>
+                        <option value="Physical Ed">Physical Ed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="teacherGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- TAB 2: Class Live Directory & Schedule -->
+        <section id="view-classes" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg">Class Directory & Live Schedule Tracker</h2>
+                    <p class="text-xs text-slate-500">Monitor current live location, teacher, subject, and full daily timetable for any grade/class.</p>
+                </div>
+                <div class="flex items-center space-x-3 w-full md:w-auto">
+                    <select id="classSelector" onchange="renderSelectedClassSchedule()" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-60">
+                        <!-- Populated dynamically -->
+                    </select>
+                    <button onclick="openAddClassModal()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm whitespace-nowrap">
+                        <i class="fa-solid fa-plus mr-1"></i> Add Class
+                    </button>
+                    <button onclick="confirmRemoveSelectedClass()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold rounded-xl border border-rose-200 whitespace-nowrap">
+                        <i class="fa-solid fa-trash mr-1"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Class Live Status Hero Card -->
+            <div id="classLiveHeroCard" class="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-6 rounded-2xl shadow-md">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Class Schedule Table -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
+                    <span>Period-by-Period Schedule</span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                                <th class="p-3">Period</th>
+                                <th class="p-3">Time</th>
+                                <th class="p-3">Assigned Teacher</th>
+                                <th class="p-3">Subject</th>
+                                <th class="p-3">Location / Room</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classScheduleTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Campus Map Grid -->
+        <section id="view-campus" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Real-Time Classroom Occupancy</h2>
+                        <p class="text-xs text-slate-500">Click any classroom to view active session, teacher, or substitute status.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block mr-1"></span> Class Active</span>
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block mr-1"></span> Sub Assigned</span>
+                        <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block mr-1"></span> Vacant</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="campusRoomGrid">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: Schedule Timeline View -->
+        <section id="view-timeline" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Daily Schedule Matrix</h2>
+                        <p class="text-xs text-slate-500">Dynamic breakdown across customized periods.</p>
+                    </div>
+                    <button onclick="openPeriodConfigModal()" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 flex items-center space-x-1">
+                        <i class="fa-solid fa-clock text-slate-500"></i>
+                        <span>Edit Period Timings</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr id="timelineHeaderRow" class="bg-slate-100 text-slate-600 uppercase font-semibold border-b border-slate-200">
+                                <!-- Headers built dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="timelineTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: Class & Teacher Schedule Editor -->
+        <section id="view-editor" class="hidden space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg">Teacher Class & Schedule Manager</h2>
+                        <p class="text-xs text-slate-500">Add, edit, or remove individual class assignments for any teacher.</p>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <select id="editorTeacherSelect" onchange="loadTeacherScheduleIntoEditor()" class="bg-slate-50 border border-slate-300 font-bold text-slate-800 text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 w-full sm:w-64">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <button onclick="openAddTeacherModal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm whitespace-nowrap">
+                            <i class="fa-solid fa-user-plus mr-1"></i> Add Teacher
+                        </button>
+                        <button onclick="confirmRemoveTeacher(document.getElementById('editorTeacherSelect').value)" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold rounded-xl border border-rose-200 whitespace-nowrap">
+                            <i class="fa-solid fa-user-minus mr-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+
+                <div id="scheduleEditorContainer" class="space-y-4">
+                    <!-- Grid of Period Cards generated for selected teacher -->
+                </div>
+
+                <div class="flex justify-between items-center pt-6 mt-6 border-t border-slate-200">
+                    <button onclick="resetDataToDefaults()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold flex items-center space-x-1">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        <span>Reset Default School Data</span>
+                    </button>
+                    <button onclick="saveScheduleEditor()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center space-x-2">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Save Teacher Schedule</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Add New Class Modal -->
+    <div id="addClassModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative mx-4">
+            <button onclick="closeAddClassModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
+                        <i class="fa-solid fa-chalkboard text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Add New Class / Grade</h3>
+                        <p class="text-xs text-slate-500">Register a new class section or cohort into the system.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Class Name / Title</label>
+                        <input type="text" id="newClassName" placeholder="e.g. Grade 10-A, Senior Seminar" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Home Classroom / Base Room</label>
+                        <select id="newClassHomeRoom" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+                    <button onclick="closeAddClassModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                    <button onclick="submitNewClass()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Create Class</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Teacher Modal -->
+    <div id="addTeacherModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative mx-4">
+            <button onclick="closeAddTeacherModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <i class="fa-solid fa-user-plus text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Add New Teacher</h3>
+                        <p class="text-xs text-slate-500">Register a new faculty member to the tracking portal.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                        <input type="text" id="newTeacherName" placeholder="e.g. Dr. Arthur Pendelton" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Department / Subject</label>
+                        <select id="newTeacherDept" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Science">Science</option>
+                            <option value="English">English</option>
+                            <option value="History">History</option>
+                            <option value="Art">Art</option>
+                            <option value="Physical Ed">Physical Ed</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Home Office / Lounge Room</label>
+                        <input type="text" id="newTeacherBreakLoc" placeholder="e.g. Math Dept Office / Room 102" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Profile Photo URL (Optional)</label>
+                        <input type="text" id="newTeacherAvatar" placeholder="Leave blank for automatic initials avatar" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+
+                    <div class="flex items-center space-x-2 pt-1">
+                        <input type="checkbox" id="newTeacherAbsent" class="rounded text-blue-600 focus:ring-blue-500">
+                        <label for="newTeacherAbsent" class="text-xs font-medium text-slate-700">Currently Absent / On Leave Today</label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+                    <button onclick="closeAddTeacherModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                    <button onclick="submitNewTeacher()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Register Teacher</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit/Add Single Period Class Modal -->
+    <div id="classEditorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative mx-4">
+            <button onclick="closeClassEditorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-blue-100 text-blue-700 rounded-xl">
+                        <i class="fa-solid fa-chalkboard text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900" id="classEditorModalTitle">Assign Class</h3>
+                        <p class="text-xs text-slate-500" id="classEditorModalSub">Teacher: <span id="classEditorTeacherName" class="font-bold text-slate-700"></span></p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="classEditorTeacherId">
+                <input type="hidden" id="classEditorPeriodId">
+
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Select Class / Grade Section</label>
+                        <select id="classEditorClassName" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Subject Name</label>
+                        <input type="text" id="classEditorSubject" placeholder="e.g. Physics, World History" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Assigned Classroom</label>
+                        <select id="classEditorRoomSelect" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                    <button onclick="removeIndividualClassFromModal()" id="btnModalRemoveClass" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-xs rounded-xl border border-rose-200 transition">
+                        <i class="fa-solid fa-trash mr-1"></i> Clear Class
+                    </button>
+                    <div class="space-x-2">
+                        <button onclick="closeClassEditorModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                        <button onclick="saveIndividualClassFromModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Save Assignment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Teacher Modal -->
+    <div id="deleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative mx-4 text-center space-y-4">
+            <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Remove Teacher?</h3>
+                <p class="text-xs text-slate-500 mt-1">Are you sure you want to delete <span id="deleteTeacherName" class="font-bold text-slate-800"></span>? This will remove all their classes and assignments from the system.</p>
+            </div>
+            <input type="hidden" id="deleteTeacherId">
+            <div class="flex justify-center space-x-3 pt-2">
+                <button onclick="closeDeleteConfirmModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                <button onclick="executeTeacherDeletion()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Confirm Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Configuration Modal -->
+    <div id="periodConfigModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 relative mx-4 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-200">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">Customize Period Timings</h3>
+                    <p class="text-xs text-slate-500">Edit start and end times for all periods across the school day.</p>
+                </div>
+                <button onclick="closePeriodConfigModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="periodInputsList" class="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+                <!-- Built dynamically -->
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-200">
+                <button onclick="addPeriodPrompt()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Add New Period</span>
+                </button>
+                <div class="space-x-2">
+                    <button onclick="closePeriodConfigModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                    <button onclick="savePeriodConfigurations()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Save Timings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Details Modal -->
+    <div id="roomModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative mx-4">
+            <button onclick="closeRoomModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="roomModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Substitution Manager Modal -->
+    <div id="subModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden transition-opacity">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative mx-4">
+            <button onclick="closeSubModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-amber-100 text-amber-700 rounded-xl">
+                        <i class="fa-solid fa-user-plus text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Assign Substitution Duty</h3>
+                        <p class="text-xs text-slate-500">Cover an unstaffed or absent teacher's class for <span id="subModalPeriodLabel" class="font-bold text-blue-600">Period 3</span></p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Target Class Needing Cover</label>
+                        <select id="subTargetSelect" onchange="updateSubAvailableOptions()" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Select Available Substitute (Free Period)</label>
+                        <select id="subSubstituteSelect" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Instructions / Notes (Optional)</label>
+                        <input type="text" id="subNoteInput" placeholder="e.g. Conduct Quiz on Chapter 4" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500/20">
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-100">
+                    <button onclick="closeSubModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+                    <button onclick="submitSubstitution()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md transition">Confirm Assignment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 transition transform translate-y-20 opacity-0 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="toastMsg">Action completed successfully</span>
+    </div>
+
+    <script>
+        // Default Period Structure
+        const DEFAULT_PERIODS = [
+            { id: 1, name: "Period 1", startTime: "08:30", endTime: "09:15" },
+            { id: 2, name: "Period 2", startTime: "09:20", endTime: "10:05" },
+            { id: 3, name: "Period 3", startTime: "10:10", endTime: "10:55" },
+            { id: 4, name: "Period 4", startTime: "11:00", endTime: "11:45" },
+            { id: 5, name: "Period 5 (Lunch)", startTime: "11:50", endTime: "12:35" },
+            { id: 6, name: "Period 6", startTime: "12:40", endTime: "13:25" },
+            { id: 7, name: "Period 7", startTime: "13:30", endTime: "14:15" },
+            { id: 8, name: "Period 8", startTime: "14:20", endTime: "15:05" }
+        ];
+
+        // Default Campus Classrooms
+        const DEFAULT_CAMPUS_ROOMS = [
+            { id: "101", name: "Room 101", floor: "1st Floor" },
+            { id: "102", name: "Room 102", floor: "1st Floor" },
+            { id: "103", name: "Room 103", floor: "1st Floor" },
+            { id: "104", name: "Room 104", floor: "1st Floor" },
+            { id: "201", name: "Room 201", floor: "2nd Floor" },
+            { id: "202", name: "Science Lab 1", floor: "2nd Floor" },
+            { id: "203", name: "Science Lab 2", floor: "2nd Floor" },
+            { id: "301", name: "Art Studio", floor: "3rd Floor" },
+            { id: "GYM", name: "Gymnasium", floor: "Ground" },
+            { id: "LIB", name: "Library", floor: "Ground" }
+        ];
+
+        // Default Classes List
+        const DEFAULT_CLASSES = [
+            { id: "c1", name: "Class 10-A", homeRoom: "101" },
+            { id: "c2", name: "Class 12-B", homeRoom: "102" },
+            { id: "c3", name: "Class 9-A", homeRoom: "202" },
+            { id: "c4", name: "Class 8-B", homeRoom: "104" },
+            { id: "c5", name: "Class 11-A", homeRoom: "101" },
+            { id: "c6", name: "Class 7-A", homeRoom: "301" }
+        ];
+
+        // Default Teachers
+        const DEFAULT_TEACHERS = [
+            {
+                id: "t1",
+                name: "Dr. Robert Vance",
+                dept: "Mathematics",
+                avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80",
+                isAbsent: false,
+                breakLocation: "Math Dept Office",
+                schedule: {
+                    1: { class: "Class 10-A", room: "101", subject: "Algebra II" },
+                    2: { class: "Class 12-B", room: "102", subject: "Calculus" },
+                    3: { class: "Class 10-A", room: "101", subject: "Geometry" },
+                    4: null,
+                    5: null,
+                    6: { class: "Class 11-A", room: "101", subject: "Algebra II" },
+                    7: null,
+                    8: { class: "Class 9-A", room: "103", subject: "General Math" }
+                }
+            },
+            {
+                id: "t2",
+                name: "Sarah Jenkins",
+                dept: "Science",
+                avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80",
+                isAbsent: false,
+                breakLocation: "Staff Cafeteria",
+                schedule: {
+                    1: null,
+                    2: { class: "Class 9-A", room: "202", subject: "Biology" },
+                    3: null,
+                    4: { class: "Class 11-A", room: "202", subject: "Chemistry" },
+                    5: null,
+                    6: { class: "Class 10-A", room: "203", subject: "Physics" },
+                    7: { class: "Class 12-B", room: "202", subject: "AP Bio" },
+                    8: null
+                }
+            },
+            {
+                id: "t3",
+                name: "Marcus Thorne",
+                dept: "English",
+                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
+                isAbsent: true,
+                breakLocation: "Out of Campus",
+                schedule: {
+                    1: { class: "Class 8-B", room: "104", subject: "Literature" },
+                    2: { class: "Class 8-B", room: "104", subject: "Grammar" },
+                    3: { class: "Class 9-A", room: "104", subject: "Creative Writing" },
+                    4: { class: "Class 10-A", room: "104", subject: "Literature" },
+                    5: null,
+                    6: null,
+                    7: { class: "Class 11-A", room: "104", subject: "AP Literature" },
+                    8: null
+                }
+            },
+            {
+                id: "t4",
+                name: "Elena Rostova",
+                dept: "Art",
+                avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=120&q=80",
+                isAbsent: false,
+                breakLocation: "Art Studio Annex",
+                schedule: {
+                    1: { class: "Class 7-A", room: "301", subject: "Visual Arts" },
+                    2: null,
+                    3: { class: "Class 12-B", room: "301", subject: "Studio Painting" },
+                    4: null,
+                    5: null,
+                    6: { class: "Class 8-B", room: "301", subject: "Sculpture" },
+                    7: null,
+                    8: null
+                }
+            }
+        ];
+
+        // State Variables with LocalStorage Support
+        let currentPeriod = 3;
+        let periods = JSON.parse(localStorage.getItem("edutrack_periods")) || DEFAULT_PERIODS;
+        let classes = JSON.parse(localStorage.getItem("edutrack_classes")) || DEFAULT_CLASSES;
+        let teachers = JSON.parse(localStorage.getItem("edutrack_teachers")) || DEFAULT_TEACHERS;
+        let campusRooms = DEFAULT_CAMPUS_ROOMS;
+        let substitutions = JSON.parse(localStorage.getItem("edutrack_subs")) || [
+            {
+                targetTeacherId: "t3",
+                substituteTeacherId: "t2",
+                period: 3,
+                room: "104",
+                targetClass: "Class 9-A (Literature)"
+            }
+        ];
+
+        // On Load
+        window.onload = function() {
+            renderDashboard();
+            populateTeacherEditorSelect();
+            populateClassSelectors();
+        };
+
+        function saveToStorage() {
+            localStorage.setItem("edutrack_periods", JSON.stringify(periods));
+            localStorage.setItem("edutrack_classes", JSON.stringify(classes));
+            localStorage.setItem("edutrack_teachers", JSON.stringify(teachers));
+            localStorage.setItem("edutrack_subs", JSON.stringify(substitutions));
+        }
+
+        function resetDataToDefaults() {
+            if (confirm("Are you sure you want to reset all classes, teachers, and period timings to default values?")) {
+                localStorage.clear();
+                periods = DEFAULT_PERIODS;
+                classes = DEFAULT_CLASSES;
+                teachers = DEFAULT_TEACHERS;
+                substitutions = [];
+                currentPeriod = 1;
+                renderDashboard();
+                populateTeacherEditorSelect();
+                populateClassSelectors();
+                showToast("All data reset to default successfully!");
+            }
+        }
+
+        // Format 24hr time (13:30) to 12hr time (1:30 PM)
+        function format12Hr(timeStr) {
+            if (!timeStr) return "";
+            const [h, m] = timeStr.split(":").map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const displayH = h % 12 || 12;
+            const displayM = m < 10 ? `0${m}` : m;
+            return `${displayH}:${displayM} ${ampm}`;
+        }
+
+        // Clock Simulation Logic
+        function advanceTime() {
+            currentPeriod = (currentPeriod % periods.length) + 1;
+            renderDashboard();
+            showToast(`Clock advanced to Period ${currentPeriod}`);
+        }
+
+        function resetSimulation() {
+            currentPeriod = 1;
+            renderDashboard();
+            showToast(`Clock reset to Period 1`);
+        }
+
+        function getTeacherStatusAtPeriod(teacher, period) {
+            if (teacher.isAbsent) {
+                const sub = substitutions.find(s => s.targetTeacherId === teacher.id && s.period === period);
+                return {
+                    status: "ABSENT",
+                    details: sub ? `Covered by ${getTeacherName(sub.substituteTeacherId)}` : "Needs Cover!",
+                    room: teacher.schedule ? (teacher.schedule[period]?.room || "N/A") : "N/A"
+                };
+            }
+
+            const subDuty = substitutions.find(s => s.substituteTeacherId === teacher.id && s.period === period);
+            if (subDuty) {
+                const coveredTeacher = teachers.find(t => t.id === subDuty.targetTeacherId);
+                return {
+                    status: "SUB",
+                    details: `Covering ${subDuty.targetClass} (for ${coveredTeacher ? coveredTeacher.name : 'Staff'})`,
+                    room: subDuty.room
+                };
+            }
+
+            const slot = teacher.schedule ? teacher.schedule[period] : null;
+            if (slot && slot.class && slot.subject) {
+                return {
+                    status: "CLASS",
+                    details: `${slot.class} | ${slot.subject}`,
+                    room: slot.room || "Room"
+                };
+            }
+
+            return {
+                status: "FREE",
+                details: `On Break (${teacher.breakLocation || 'Lounge'})`,
+                room: "Staff Lounge/Free"
+            };
+        }
+
+        function getTeacherName(id) {
+            const t = teachers.find(x => x.id === id);
+            return t ? t.name : "Teacher";
+        }
+
+        // Render Main UI
+        function renderDashboard() {
+            const currentP = periods.find(p => p.id === currentPeriod) || periods[0];
+            document.getElementById("currentPeriodBadge").innerText = currentP.name;
+            document.getElementById("currentTimeDisplay").innerText = `${format12Hr(currentP.startTime)} - ${format12Hr(currentP.endTime)}`;
+
+            let total = teachers.length;
+            let inClass = 0;
+            let free = 0;
+            let subCount = 0;
+
+            teachers.forEach(t => {
+                const st = getTeacherStatusAtPeriod(t, currentPeriod);
+                if (st.status === 'CLASS') inClass++;
+                else if (st.status === 'FREE') free++;
+                else if (st.status === 'SUB') subCount++;
+            });
+
+            document.getElementById("statTotal").innerText = total;
+            document.getElementById("statClassesTotal").innerText = classes.length;
+            document.getElementById("statInClass").innerText = inClass;
+            document.getElementById("statFree").innerText = free;
+            document.getElementById("statSub").innerText = subCount;
+
+            renderDirectory();
+            renderCampusGrid();
+            renderTimeline();
+            renderSelectedClassSchedule();
+        }
+
+        function applyFilters() {
+            renderDirectory();
+        }
+
+        function renderDirectory() {
+            const grid = document.getElementById("teacherGrid");
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            const filterStatus = document.getElementById("filterStatus").value;
+            const filterDept = document.getElementById("filterDept").value;
+
+            grid.innerHTML = "";
+
+            teachers.forEach(t => {
+                const st = getTeacherStatusAtPeriod(t, currentPeriod);
+
+                if (filterStatus !== "ALL" && st.status !== filterStatus) return;
+                if (filterDept !== "ALL" && t.dept !== filterDept) return;
+                if (search && !t.name.toLowerCase().includes(search) && !st.details.toLowerCase().includes(search) && !st.room.toLowerCase().includes(search)) return;
+
+                let statusBadge = "";
+                let cardBorder = "border-slate-200";
+
+                if (st.status === "CLASS") {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>In Live Class</span>`;
+                    cardBorder = "border-l-4 border-l-rose-500 border-slate-200";
+                } else if (st.status === "FREE") {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span>On Break / Free</span>`;
+                    cardBorder = "border-l-4 border-l-amber-400 border-slate-200";
+                } else if (st.status === "SUB") {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>Substitution Duty</span>`;
+                    cardBorder = "border-l-4 border-l-blue-500 border-slate-200";
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-600 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-400"></span>Absent</span>`;
+                    cardBorder = "border-l-4 border-l-slate-400 border-slate-200 opacity-80";
+                }
+
+                const cardHtml = `
+                    <div class="bg-white rounded-2xl p-4 border ${cardBorder} shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center space-x-3">
+                                <img src="${t.avatar || 'https://placehold.co/120x120/3b82f6/ffffff?text=' + encodeURIComponent(t.name.charAt(0))}" class="w-12 h-12 rounded-xl object-cover border border-slate-100">
+                                <div>
+                                    <h3 class="font-bold text-slate-900 text-sm leading-snug">${t.name}</h3>
+                                    <p class="text-xs text-slate-500 font-medium">${t.dept}</p>
+                                </div>
+                            </div>
+                            ${statusBadge}
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                            <div class="flex items-center justify-between text-slate-600">
+                                <span class="font-semibold text-slate-400 uppercase text-[10px]">Location/Room</span>
+                                <span class="font-bold text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">${st.room}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-slate-600">
+                                <span class="font-semibold text-slate-400 uppercase text-[10px]">Activity</span>
+                                <span class="font-medium text-slate-700 truncate max-w-[180px]">${st.details}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1 text-xs">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="editTeacherScheduleDirectly('${t.id}')" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                    <span>Manage Classes</span>
+                                </button>
+                                ${t.isAbsent ? `
+                                    <button onclick="openSubstitutionModal('${t.id}')" class="px-2 py-0.5 bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold rounded-md text-[11px] border border-amber-200">
+                                        Assign Sub
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <button onclick="confirmRemoveTeacher('${t.id}')" class="text-rose-500 hover:text-rose-700 font-medium text-xs flex items-center space-x-1" title="Delete Teacher">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += cardHtml;
+            });
+        }
+
+        // Class View Engine
+        function populateClassSelectors() {
+            const classSel = document.getElementById("classSelector");
+            const classEditorSel = document.getElementById("classEditorClassName");
+            
+            if (classSel) {
+                classSel.innerHTML = "";
+                classes.forEach(c => {
+                    classSel.innerHTML += `<option value="${c.name}">${c.name} (Base Rm ${c.homeRoom})</option>`;
+                });
+            }
+
+            if (classEditorSel) {
+                classEditorSel.innerHTML = "";
+                classes.forEach(c => {
+                    classEditorSel.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            }
+
+            const homeRoomSel = document.getElementById("newClassHomeRoom");
+            if (homeRoomSel) {
+                homeRoomSel.innerHTML = "";
+                campusRooms.forEach(r => {
+                    homeRoomSel.innerHTML += `<option value="${r.id}">${r.name} (${r.floor})</option>`;
+                });
+            }
+        }
+
+        function renderSelectedClassSchedule() {
+            const className = document.getElementById("classSelector")?.value;
+            if (!className) return;
+
+            const selectedClass = classes.find(c => c.name === className) || { name: className, homeRoom: "101" };
+            const heroCard = document.getElementById("classLiveHeroCard");
+            const tbody = document.getElementById("classScheduleTableBody");
+
+            // Find live session for selected class during currentPeriod
+            let liveTeacher = null;
+            let liveSlot = null;
+            let isSubstituted = false;
+            let subTeacher = null;
+
+            teachers.forEach(t => {
+                const slot = t.schedule ? t.schedule[currentPeriod] : null;
+                if (slot && slot.class === className) {
+                    liveTeacher = t;
+                    liveSlot = slot;
+
+                    // Check if substitute is covering
+                    const sub = substitutions.find(s => s.targetTeacherId === t.id && s.period === currentPeriod);
+                    if (sub) {
+                        isSubstituted = true;
+                        subTeacher = teachers.find(st => st.id === sub.substituteTeacherId);
+                    }
+                }
+            });
+
+            // Render Hero Summary Card
+            let statusText = "No Class Scheduled";
+            let statusBadge = `<span class="bg-slate-700/60 text-slate-300 text-xs font-bold px-3 py-1 rounded-full border border-slate-600">Break / Self Study</span>`;
+            let activeTeacherDisplay = "N/A";
+            let activeRoomDisplay = selectedClass.homeRoom;
+
+            if (liveTeacher) {
+                if (liveTeacher.isAbsent) {
+                    if (isSubstituted) {
+                        statusBadge = `<span class="bg-blue-500/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>Substitution Session</span>`;
+                        statusText = `${liveSlot.subject}`;
+                        activeTeacherDisplay = `${subTeacher ? subTeacher.name : 'Sub'} (Covering for ${liveTeacher.name})`;
+                        activeRoomDisplay = liveSlot.room;
+                    } else {
+                        statusBadge = `<span class="bg-rose-500/20 text-rose-300 text-xs font-bold px-3 py-1 rounded-full border border-rose-400">Teacher Absent - Unstaffed</span>`;
+                        statusText = `${liveSlot.subject}`;
+                        activeTeacherDisplay = `${liveTeacher.name} (Absent)`;
+                        activeRoomDisplay = liveSlot.room;
+                    }
+                } else {
+                    statusBadge = `<span class="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full border border-emerald-400 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>Live In Session</span>`;
+                    statusText = `${liveSlot.subject}`;
+                    activeTeacherDisplay = liveTeacher.name;
+                    activeRoomDisplay = liveSlot.room;
+                }
+            }
+
+            heroCard.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <div class="flex items-center space-x-3 mb-1">
+                            <h2 class="text-2xl font-black">${selectedClass.name}</h2>
+                            ${statusBadge}
+                        </div>
+                        <p class="text-indigo-200 text-sm">Base Classroom: <span class="font-bold text-white">Room ${selectedClass.homeRoom}</span></p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10 text-xs">
+                        <div>
+                            <span class="text-indigo-200 block text-[10px] uppercase font-semibold">Active Subject</span>
+                            <span class="font-bold text-sm text-white">${statusText}</span>
+                        </div>
+                        <div class="h-8 w-px bg-white/20"></div>
+                        <div>
+                            <span class="text-indigo-200 block text-[10px] uppercase font-semibold">Assigned Instructor</span>
+                            <span class="font-bold text-sm text-white">${activeTeacherDisplay}</span>
+                        </div>
+                        <div class="h-8 w-px bg-white/20"></div>
+                        <div>
+                            <span class="text-indigo-200 block text-[10px] uppercase font-semibold">Current Location</span>
+                            <span class="font-bold text-sm text-emerald-300">Room ${activeRoomDisplay}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Build Full Period Table for Class
+            tbody.innerHTML = "";
+            periods.forEach(p => {
+                let pTeacher = null;
+                let pSlot = null;
+                let pSub = null;
+
+                teachers.forEach(t => {
+                    const slot = t.schedule ? t.schedule[p.id] : null;
+                    if (slot && slot.class === className) {
+                        pTeacher = t;
+                        pSlot = slot;
+                        const sub = substitutions.find(s => s.targetTeacherId === t.id && s.period === p.id);
+                        if (sub) pSub = teachers.find(st => st.id === sub.substituteTeacherId);
+                    }
+                });
+
+                const isCurrent = (p.id === currentPeriod);
+                const rowBg = isCurrent ? "bg-indigo-50/70 font-semibold" : "hover:bg-slate-50";
+
+                tbody.innerHTML += `
+                    <tr class="${rowBg} transition">
+                        <td class="p-3">
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            ${isCurrent ? '<span class="ml-2 text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full uppercase">Now</span>' : ''}
+                        </td>
+                        <td class="p-3 font-mono text-slate-500 text-[11px]">${format12Hr(p.startTime)} - ${format12Hr(p.endTime)}</td>
+                        <td class="p-3">
+                            ${pTeacher ? `
+                                <div class="flex items-center space-x-2">
+                                    <img src="${pTeacher.avatar || 'https://placehold.co/120x120/3b82f6/ffffff?text=' + encodeURIComponent(pTeacher.name.charAt(0))}" class="w-6 h-6 rounded-full object-cover">
+                                    <span class="text-slate-800 font-bold">${pTeacher.name}</span>
+                                    ${pSub ? `<span class="text-[10px] text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">(Sub: ${pSub.name})</span>` : ''}
+                                </div>
+                            ` : `<span class="text-slate-400 italic">No Teacher Assigned</span>`}
+                        </td>
+                        <td class="p-3">
+                            ${pSlot ? `<span class="px-2 py-1 bg-slate-100 text-slate-800 font-bold rounded-md">${pSlot.subject}</span>` : `<span class="text-slate-400">—</span>`}
+                        </td>
+                        <td class="p-3">
+                            ${pSlot ? `<span class="font-bold text-indigo-600">Room ${pSlot.room}</span>` : `<span class="text-slate-400">Room ${selectedClass.homeRoom}</span>`}
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="openAssignClassPeriodModal('${className}', ${p.id})" class="px-2.5 py-1 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 font-semibold text-xs rounded-lg border border-slate-200 transition">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i> Edit Slot
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openAddClassModal() {
+            document.getElementById("newClassName").value = "";
+            document.getElementById("addClassModal").classList.remove("hidden");
+        }
+
+        function closeAddClassModal() {
+            document.getElementById("addClassModal").classList.add("hidden");
+        }
+
+        function submitNewClass() {
+            const name = document.getElementById("newClassName").value.trim();
+            const homeRoom = document.getElementById("newClassHomeRoom").value;
+
+            if (!name) {
+                showToast("Please enter a class name");
+                return;
+            }
+
+            if (classes.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+                showToast("A class with this name already exists!");
+                return;
+            }
+
+            classes.push({
+                id: "c_" + Date.now(),
+                name: name,
+                homeRoom: homeRoom || "101"
+            });
+
+            saveToStorage();
+            closeAddClassModal();
+            populateClassSelectors();
+            renderDashboard();
+            showToast(`Created new class ${name}`);
+        }
+
+        function confirmRemoveSelectedClass() {
+            const className = document.getElementById("classSelector").value;
+            if (!className) return;
+
+            if (confirm(`Are you sure you want to delete ${className}? This will unassign it from all teacher schedules.`)) {
+                classes = classes.filter(c => c.name !== className);
+
+                // Unassign from teachers
+                teachers.forEach(t => {
+                    if (t.schedule) {
+                        Object.keys(t.schedule).forEach(pId => {
+                            if (t.schedule[pId] && t.schedule[pId].class === className) {
+                                t.schedule[pId] = null;
+                            }
+                        });
+                    }
+                });
+
+                saveToStorage();
+                populateClassSelectors();
+                renderDashboard();
+                showToast(`Deleted class ${className}`);
+            }
+        }
+
+        function openAssignClassPeriodModal(className, periodId) {
+            // Find existing teacher assigned to this class for periodId
+            let assignedTeacherId = "";
+            let subject = "";
+            let room = "101";
+
+            teachers.forEach(t => {
+                const slot = t.schedule ? t.schedule[periodId] : null;
+                if (slot && slot.class === className) {
+                    assignedTeacherId = t.id;
+                    subject = slot.subject;
+                    room = slot.room;
+                }
+            });
+
+            if (assignedTeacherId) {
+                openClassEditorModal(assignedTeacherId, periodId);
+            } else if (teachers.length > 0) {
+                openClassEditorModal(teachers[0].id, periodId);
+            } else {
+                showToast("Please register at least one teacher first!");
+            }
+        }
+
+        // Campus View
+        function renderCampusGrid() {
+            const container = document.getElementById("campusRoomGrid");
+            container.innerHTML = "";
+
+            campusRooms.forEach(room => {
+                let occupant = null;
+                let isSub = false;
+
+                teachers.forEach(t => {
+                    const st = getTeacherStatusAtPeriod(t, currentPeriod);
+                    if (st.room === room.id) {
+                        occupant = { teacher: t, status: st };
+                        if (st.status === 'SUB') isSub = true;
+                    }
+                });
+
+                let statusBg = "bg-emerald-50 border-emerald-200 text-emerald-800";
+                let statusDot = "bg-emerald-500";
+                let label = "Vacant / Available";
+
+                if (occupant) {
+                    if (isSub) {
+                        statusBg = "bg-blue-50 border-blue-200 text-blue-900";
+                        statusDot = "bg-blue-500";
+                        label = `${occupant.teacher.name} (Sub)`;
+                    } else {
+                        statusBg = "bg-rose-50 border-rose-200 text-rose-900";
+                        statusDot = "bg-rose-500";
+                        label = occupant.teacher.name;
+                    }
+                }
+
+                const tileHtml = `
+                    <div onclick="openRoomDetails('${room.id}')" class="p-3.5 rounded-2xl border ${statusBg} cursor-pointer hover:shadow-md transition flex flex-col justify-between space-y-2 relative group">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-sm">${room.name}</h4>
+                                <span class="text-[10px] text-slate-500 block">${room.floor}</span>
+                            </div>
+                            <span class="w-2.5 h-2.5 rounded-full ${statusDot}"></span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200/50">
+                            <p class="text-xs font-semibold truncate">${label}</p>
+                            <p class="text-[10px] text-slate-500 truncate">${occupant ? occupant.status.details : 'No scheduled class'}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += tileHtml;
+            });
+        }
+
+        function renderTimeline() {
+            const headerRow = document.getElementById("timelineHeaderRow");
+            const tbody = document.getElementById("timelineTableBody");
+            
+            headerRow.innerHTML = `<th class="p-3 min-w-[160px]">Teacher</th>`;
+            periods.forEach(p => {
+                const isCurrent = (p.id === currentPeriod);
+                const activeClass = isCurrent ? "bg-blue-100 text-blue-800 font-bold border-b-2 border-blue-600" : "";
+                headerRow.innerHTML += `
+                    <th class="p-3 text-center min-w-[110px] ${activeClass}">
+                        ${p.name}<br>
+                        <span class="text-[10px] text-slate-400 font-normal">${format12Hr(p.startTime)}-${format12Hr(p.endTime)}</span>
+                    </th>
+                `;
+            });
+
+            tbody.innerHTML = "";
+            teachers.forEach(t => {
+                let rowHtml = `<tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-3 border-b border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <img src="${t.avatar || 'https://placehold.co/120x120/3b82f6/ffffff?text=' + encodeURIComponent(t.name.charAt(0))}" class="w-7 h-7 rounded-lg object-cover">
+                                <div>
+                                    <p class="font-bold text-slate-800 text-xs">${t.name}</p>
+                                    <p class="text-[10px] text-slate-400">${t.dept}</p>
+                                </div>
+                            </div>
+                            <button onclick="confirmRemoveTeacher('${t.id}')" class="text-slate-300 hover:text-rose-600 text-xs" title="Delete Teacher">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </td>`;
+
+                periods.forEach(p => {
+                    const st = getTeacherStatusAtPeriod(t, p.id);
+                    const isCurrent = (p.id === currentPeriod);
+                    let cellBg = isCurrent ? "bg-blue-50/50" : "";
+
+                    let cellContent = "";
+                    if (st.status === "CLASS") {
+                        const slot = t.schedule ? t.schedule[p.id] : null;
+                        cellContent = `<div class="p-1.5 rounded-lg bg-rose-100 text-rose-800 font-medium text-[11px] leading-tight relative group">
+                            <span class="font-bold block">${slot ? slot.class : 'Class'}</span>
+                            <span class="text-[10px] text-rose-600">${slot ? slot.subject : ''} (Rm ${slot ? slot.room : ''})</span>
+                            <div class="absolute inset-0 bg-rose-900/80 rounded-lg text-white opacity-0 group-hover:opacity-100 flex items-center justify-center space-x-2 transition">
+                                <button onclick="openClassEditorModal('${t.id}', ${p.id})" title="Edit Class" class="hover:text-amber-300"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="clearIndividualClass('${t.id}', ${p.id})" title="Remove Class" class="hover:text-rose-300"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>`;
+                    } else if (st.status === "SUB") {
+                        cellContent = `<div class="p-1.5 rounded-lg bg-blue-100 text-blue-800 font-medium text-[11px] leading-tight">
+                            <span class="font-bold block">Sub Covering</span>
+                            <span class="text-[10px] text-blue-600">Rm ${st.room}</span>
+                        </div>`;
+                    } else if (st.status === "ABSENT") {
+                        cellContent = `<div class="p-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium text-[11px]">
+                            Absent
+                        </div>`;
+                    } else {
+                        cellContent = `<button onclick="openClassEditorModal('${t.id}', ${p.id})" class="p-1.5 w-full rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 text-[11px] font-medium border border-dashed border-transparent hover:border-blue-300 transition flex items-center justify-center space-x-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>Add Class</span>
+                        </button>`;
+                    }
+
+                    rowHtml += `<td class="p-2 text-center border-b border-slate-100 ${cellBg}">${cellContent}</td>`;
+                });
+
+                rowHtml += `</tr>`;
+                tbody.innerHTML += rowHtml;
+            });
+        }
+
+        function openAddTeacherModal() {
+            document.getElementById("newTeacherName").value = "";
+            document.getElementById("newTeacherBreakLoc").value = "";
+            document.getElementById("newTeacherAvatar").value = "";
+            document.getElementById("newTeacherAbsent").checked = false;
+            document.getElementById("addTeacherModal").classList.remove("hidden");
+        }
+
+        function closeAddTeacherModal() {
+            document.getElementById("addTeacherModal").classList.add("hidden");
+        }
+
+        function submitNewTeacher() {
+            const name = document.getElementById("newTeacherName").value.trim();
+            const dept = document.getElementById("newTeacherDept").value;
+            const breakLoc = document.getElementById("newTeacherBreakLoc").value.trim();
+            const avatar = document.getElementById("newTeacherAvatar").value.trim();
+            const isAbsent = document.getElementById("newTeacherAbsent").checked;
+
+            if (!name) {
+                showToast("Please enter a teacher name");
+                return;
+            }
+
+            const newId = "t_" + Date.now();
+            const newTeacher = {
+                id: newId,
+                name: name,
+                dept: dept || "General",
+                avatar: avatar || `https://placehold.co/120x120/3b82f6/ffffff?text=${encodeURIComponent(name.charAt(0))}`,
+                isAbsent: isAbsent,
+                breakLocation: breakLoc || "Staff Lounge",
+                schedule: {}
+            };
+
+            teachers.push(newTeacher);
+            saveToStorage();
+            closeAddTeacherModal();
+            renderDashboard();
+            populateTeacherEditorSelect();
+            showToast(`Registered teacher ${name}`);
+        }
+
+        function confirmRemoveTeacher(teacherId) {
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            document.getElementById("deleteTeacherId").value = teacherId;
+            document.getElementById("deleteTeacherName").innerText = teacher.name;
+            document.getElementById("deleteConfirmModal").classList.remove("hidden");
+        }
+
+        function closeDeleteConfirmModal() {
+            document.getElementById("deleteConfirmModal").classList.add("hidden");
+        }
+
+        function executeTeacherDeletion() {
+            const teacherId = document.getElementById("deleteTeacherId").value;
+            teachers = teachers.filter(t => t.id !== teacherId);
+            substitutions = substitutions.filter(s => s.targetTeacherId !== teacherId && s.substituteTeacherId !== teacherId);
+
+            saveToStorage();
+            closeDeleteConfirmModal();
+            renderDashboard();
+            populateTeacherEditorSelect();
+            showToast("Teacher removed successfully");
+        }
+
+        function openClassEditorModal(teacherId, periodId) {
+            const teacher = teachers.find(t => t.id === teacherId);
+            const period = periods.find(p => p.id === periodId);
+            if (!teacher || !period) return;
+
+            document.getElementById("classEditorTeacherId").value = teacherId;
+            document.getElementById("classEditorPeriodId").value = periodId;
+            document.getElementById("classEditorTeacherName").innerText = `${teacher.name} (${period.name})`;
+
+            const roomSelect = document.getElementById("classEditorRoomSelect");
+            roomSelect.innerHTML = "";
+            campusRooms.forEach(r => {
+                roomSelect.innerHTML += `<option value="${r.id}">${r.name} (${r.floor})</option>`;
+            });
+
+            const currentSlot = teacher.schedule ? teacher.schedule[periodId] : null;
+            if (currentSlot && (currentSlot.class || currentSlot.subject)) {
+                document.getElementById("classEditorModalTitle").innerText = "Edit Class Assignment";
+                document.getElementById("classEditorClassName").value = currentSlot.class || "";
+                document.getElementById("classEditorSubject").value = currentSlot.subject || "";
+                if (currentSlot.room) roomSelect.value = currentSlot.room;
+                document.getElementById("btnModalRemoveClass").classList.remove("hidden");
+            } else {
+                document.getElementById("classEditorModalTitle").innerText = "Add New Class Assignment";
+                if (classes.length > 0) document.getElementById("classEditorClassName").value = classes[0].name;
+                document.getElementById("classEditorSubject").value = teacher.dept || "";
+                document.getElementById("btnModalRemoveClass").classList.add("hidden");
+            }
+
+            document.getElementById("classEditorModal").classList.remove("hidden");
+        }
+
+        function closeClassEditorModal() {
+            document.getElementById("classEditorModal").classList.add("hidden");
+        }
+
+        function saveIndividualClassFromModal() {
+            const teacherId = document.getElementById("classEditorTeacherId").value;
+            const periodId = parseInt(document.getElementById("classEditorPeriodId").value);
+            const className = document.getElementById("classEditorClassName").value;
+            const subject = document.getElementById("classEditorSubject").value.trim();
+            const room = document.getElementById("classEditorRoomSelect").value;
+
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            if (!className || !subject) {
+                showToast("Please enter both Class and Subject");
+                return;
+            }
+
+            if (!teacher.schedule) teacher.schedule = {};
+            teacher.schedule[periodId] = {
+                class: className,
+                subject: subject,
+                room: room
+            };
+
+            saveToStorage();
+            closeClassEditorModal();
+            renderDashboard();
+            loadTeacherScheduleIntoEditor();
+            showToast(`Saved ${className} for Period ${periodId}`);
+        }
+
+        function removeIndividualClassFromModal() {
+            const teacherId = document.getElementById("classEditorTeacherId").value;
+            const periodId = parseInt(document.getElementById("classEditorPeriodId").value);
+            clearIndividualClass(teacherId, periodId);
+            closeClassEditorModal();
+        }
+
+        function clearIndividualClass(teacherId, periodId) {
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher || !teacher.schedule) return;
+
+            teacher.schedule[periodId] = null;
+            saveToStorage();
+            renderDashboard();
+            loadTeacherScheduleIntoEditor();
+            showToast(`Cleared Class for Period ${periodId}`);
+        }
+
+        // Period Config Modal
+        function openPeriodConfigModal() {
+            const list = document.getElementById("periodInputsList");
+            list.innerHTML = "";
+
+            periods.forEach((p, idx) => {
+                list.innerHTML += `
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="w-full sm:w-1/3">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase">Period Name</label>
+                            <input type="text" id="periodName_${p.id}" value="${p.name}" class="w-full bg-white border border-slate-300 rounded-lg text-xs font-semibold p-1.5 focus:ring-2 focus:ring-blue-500/20">
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-1/2">
+                            <div class="w-1/2">
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase">Start Time</label>
+                                <input type="time" id="periodStart_${p.id}" value="${p.startTime}" class="w-full bg-white border border-slate-300 rounded-lg text-xs p-1.5">
+                            </div>
+                            <span class="text-slate-400 pt-3">-</span>
+                            <div class="w-1/2">
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase">End Time</label>
+                                <input type="time" id="periodEnd_${p.id}" value="${p.endTime}" class="w-full bg-white border border-slate-300 rounded-lg text-xs p-1.5">
+                            </div>
+                        </div>
+                        ${periods.length > 1 ? `
+                            <button onclick="removePeriod(${p.id})" class="text-rose-500 hover:text-rose-700 text-xs sm:pt-3">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            document.getElementById("periodConfigModal").classList.remove("hidden");
+        }
+
+        function closePeriodConfigModal() {
+            document.getElementById("periodConfigModal").classList.add("hidden");
+        }
+
+        function addPeriodPrompt() {
+            const newId = periods.length > 0 ? Math.max(...periods.map(p => p.id)) + 1 : 1;
+            periods.push({
+                id: newId,
+                name: `Period ${newId}`,
+                startTime: "15:10",
+                endTime: "15:55"
+            });
+            openPeriodConfigModal();
+        }
+
+        function removePeriod(periodId) {
+            periods = periods.filter(p => p.id !== periodId);
+            openPeriodConfigModal();
+        }
+
+        function savePeriodConfigurations() {
+            periods.forEach(p => {
+                const nameInp = document.getElementById(`periodName_${p.id}`);
+                const startInp = document.getElementById(`periodStart_${p.id}`);
+                const endInp = document.getElementById(`periodEnd_${p.id}`);
+
+                if (nameInp && startInp && endInp) {
+                    p.name = nameInp.value;
+                    p.startTime = startInp.value;
+                    p.endTime = endInp.value;
+                }
+            });
+
+            saveToStorage();
+            closePeriodConfigModal();
+            renderDashboard();
+            showToast("Period timings updated successfully!");
+        }
+
+        // Schedule Editor Tab
+        function populateTeacherEditorSelect() {
+            const select = document.getElementById("editorTeacherSelect");
+            if (!select) return;
+            select.innerHTML = "";
+            teachers.forEach(t => {
+                select.innerHTML += `<option value="${t.id}">${t.name} (${t.dept})</option>`;
+            });
+            loadTeacherScheduleIntoEditor();
+        }
+
+        function loadTeacherScheduleIntoEditor() {
+            const teacherId = document.getElementById("editorTeacherSelect").value;
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) {
+                document.getElementById("scheduleEditorContainer").innerHTML = `<p class="text-xs text-slate-400 italic">No teachers available. Click "Add Teacher" above to create one.</p>`;
+                return;
+            }
+
+            const container = document.getElementById("scheduleEditorContainer");
+            container.innerHTML = "";
+
+            periods.forEach(p => {
+                const slot = (teacher.schedule && teacher.schedule[p.id]) ? teacher.schedule[p.id] : { class: "", room: "", subject: "" };
+                const hasClass = Boolean(slot.class || slot.subject);
+
+                container.innerHTML += `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">
+                                ${p.name} (${format12Hr(p.startTime)} - ${format12Hr(p.endTime)})
+                            </span>
+                            <div class="flex items-center space-x-2">
+                                ${hasClass ? `
+                                    <button onclick="clearIndividualClass('${teacher.id}', ${p.id})" class="text-[11px] font-semibold text-rose-600 hover:text-rose-800 flex items-center space-x-1">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                        <span>Clear Class</span>
+                                    </button>
+                                ` : ''}
+                                <label class="text-xs font-semibold text-slate-500 flex items-center space-x-1 cursor-pointer">
+                                    <input type="checkbox" id="freeCheck_${p.id}" ${!hasClass ? 'checked' : ''} onchange="toggleFreePeriodInputs(${p.id})" class="rounded text-blue-600 focus:ring-blue-500">
+                                    <span>Free Period / Break</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="inputsGroup_${p.id}" class="grid grid-cols-1 sm:grid-cols-3 gap-3 ${!hasClass ? 'opacity-40 pointer-events-none' : ''}">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class / Grade</label>
+                                <select id="classInp_${p.id}" class="w-full bg-white border border-slate-300 rounded-lg text-xs p-2">
+                                    ${classes.map(c => `<option value="${c.name}" ${slot.class === c.name ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Subject</label>
+                                <input type="text" id="subjectInp_${p.id}" value="${slot.subject || ''}" placeholder="e.g. Algebra II" class="w-full bg-white border border-slate-300 rounded-lg text-xs p-2">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Classroom / Room</label>
+                                <select id="roomInp_${p.id}" class="w-full bg-white border border-slate-300 rounded-lg text-xs p-2">
+                                    ${campusRooms.map(r => `<option value="${r.id}" ${slot.room === r.id ? 'selected' : ''}>${r.name} (${r.id})</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleFreePeriodInputs(periodId) {
+            const isFree = document.getElementById(`freeCheck_${periodId}`).checked;
+            const group = document.getElementById(`inputsGroup_${periodId}`);
+            if (isFree) {
+                group.classList.add("opacity-40", "pointer-events-none");
+            } else {
+                group.classList.remove("opacity-40", "pointer-events-none");
+            }
+        }
+
+        function saveScheduleEditor() {
+            const teacherId = document.getElementById("editorTeacherSelect").value;
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            if (!teacher.schedule) teacher.schedule = {};
+
+            periods.forEach(p => {
+                const freeCheck = document.getElementById(`freeCheck_${p.id}`);
+                if (freeCheck && freeCheck.checked) {
+                    teacher.schedule[p.id] = null;
+                } else {
+                    const classInp = document.getElementById(`classInp_${p.id}`);
+                    const subjectInp = document.getElementById(`subjectInp_${p.id}`);
+                    const roomInp = document.getElementById(`roomInp_${p.id}`);
+
+                    if (classInp && subjectInp && subjectInp.value.trim()) {
+                        teacher.schedule[p.id] = {
+                            class: classInp.value,
+                            subject: subjectInp.value.trim() || teacher.dept || "General",
+                            room: roomInp ? roomInp.value : "101"
+                        };
+                    } else {
+                        teacher.schedule[p.id] = null;
+                    }
+                }
+            });
+
+            saveToStorage();
+            renderDashboard();
+            showToast(`Saved schedule for ${teacher.name}`);
+        }
+
+        function editTeacherScheduleDirectly(teacherId) {
+            switchTab('editor');
+            document.getElementById("editorTeacherSelect").value = teacherId;
+            loadTeacherScheduleIntoEditor();
+        }
+
+        function switchTab(tab) {
+            document.getElementById("view-directory").classList.add("hidden");
+            document.getElementById("view-classes").classList.add("hidden");
+            document.getElementById("view-campus").classList.add("hidden");
+            document.getElementById("view-timeline").classList.add("hidden");
+            document.getElementById("view-editor").classList.add("hidden");
+
+            document.getElementById("tab-directory").className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition";
+            document.getElementById("tab-classes").className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition";
+            document.getElementById("tab-campus").className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition";
+            document.getElementById("tab-timeline").className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition";
+            document.getElementById("tab-editor").className = "pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center space-x-2 whitespace-nowrap transition";
+
+            document.getElementById(`view-${tab}`).classList.remove("hidden");
+            document.getElementById(`tab-${tab}`).className = "pb-3 border-b-2 border-blue-600 text-blue-600 flex items-center space-x-2 whitespace-nowrap transition";
+        }
+
+        // Modals & Substitutions
+        function openRoomDetails(roomId) {
+            const room = campusRooms.find(r => r.id === roomId);
+            let occupant = null;
+
+            teachers.forEach(t => {
+                const st = getTeacherStatusAtPeriod(t, currentPeriod);
+                if (st.room === roomId) occupant = { teacher: t, status: st };
+            });
+
+            const modalContent = document.getElementById("roomModalContent");
+            modalContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-3 bg-blue-100 text-blue-700 rounded-xl">
+                            <i class="fa-solid fa-door-open text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">${room.name}</h3>
+                            <p class="text-xs text-slate-500">${room.floor} • Current Period: ${currentPeriod}</p>
+                        </div>
+                    </div>
+
+                    ${occupant ? `
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <img src="${occupant.teacher.avatar || 'https://placehold.co/120x120/3b82f6/ffffff?text=' + encodeURIComponent(occupant.teacher.name.charAt(0))}" class="w-10 h-10 rounded-xl object-cover">
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-900">${occupant.teacher.name}</h4>
+                                    <p class="text-xs text-slate-500">${occupant.teacher.dept}</p>
+                                </div>
+                            </div>
+                            <div class="pt-2 border-t border-slate-200/60 text-xs flex justify-between">
+                                <span class="text-slate-500">Current Session:</span>
+                                <span class="font-bold text-slate-800">${occupant.status.details}</span>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-center text-xs font-semibold">
+                            This classroom is currently vacant and available.
+                        </div>
+                    `}
+                </div>
+            `;
+            document.getElementById("roomModal").classList.remove("hidden");
+        }
+
+        function closeRoomModal() {
+            document.getElementById("roomModal").classList.add("hidden");
+        }
+
+        function openSubstitutionModal(targetTeacherId = null) {
+            document.getElementById("subModalPeriodLabel").innerText = `Period ${currentPeriod}`;
+            const targetSelect = document.getElementById("subTargetSelect");
+            targetSelect.innerHTML = "";
+
+            teachers.forEach(t => {
+                const st = getTeacherStatusAtPeriod(t, currentPeriod);
+                if (t.isAbsent || st.status === "CLASS") {
+                    const slot = t.schedule ? t.schedule[currentPeriod] : null;
+                    const label = `${t.name} (${t.isAbsent ? 'Absent' : 'Scheduled'}) - ${slot ? slot.class : 'Free'}`;
+                    targetSelect.innerHTML += `<option value="${t.id}" ${t.id === targetTeacherId ? 'selected' : ''}>${label}</option>`;
+                }
+            });
+
+            if (targetSelect.options.length === 0) {
+                targetSelect.innerHTML = `<option value="">No classes require substitution currently</option>`;
+            }
+
+            updateSubAvailableOptions();
+            document.getElementById("subModal").classList.remove("hidden");
+        }
+
+        function updateSubAvailableOptions() {
+            const subSelect = document.getElementById("subSubstituteSelect");
+            subSelect.innerHTML = "";
+
+            teachers.forEach(t => {
+                const st = getTeacherStatusAtPeriod(t, currentPeriod);
+                if (!t.isAbsent && st.status === "FREE") {
+                    subSelect.innerHTML += `<option value="${t.id}">${t.name} (${t.dept} - Free)</option>`;
+                }
+            });
+
+            if (subSelect.options.length === 0) {
+                subSelect.innerHTML = `<option value="">No teachers available on Free Period</option>`;
+            }
+        }
+
+        function closeSubModal() {
+            document.getElementById("subModal").classList.add("hidden");
+        }
+
+        function submitSubstitution() {
+            const targetId = document.getElementById("subTargetSelect").value;
+            const subId = document.getElementById("subSubstituteSelect").value;
+
+            if (!targetId || !subId) {
+                showToast("Please select valid teachers for substitution");
+                return;
+            }
+
+            const targetTeacher = teachers.find(t => t.id === targetId);
+            const slot = (targetTeacher && targetTeacher.schedule) ? targetTeacher.schedule[currentPeriod] : null;
+
+            substitutions = substitutions.filter(s => !(s.targetTeacherId === targetId && s.period === currentPeriod));
+            substitutions.push({
+                targetTeacherId: targetId,
+                substituteTeacherId: subId,
+                period: currentPeriod,
+                room: slot ? slot.room : "101",
+                targetClass: slot ? `${slot.class} (${slot.subject})` : "General Cover"
+            });
+
+            saveToStorage();
+            closeSubModal();
+            renderDashboard();
+            showToast("Substitution assigned successfully!");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toastMsg").innerText = msg;
+            toast.classList.remove("translate-y-20", "opacity-0");
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
